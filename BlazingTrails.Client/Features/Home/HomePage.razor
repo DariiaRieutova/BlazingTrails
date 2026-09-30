@@ -1,0 +1,32 @@
+﻿@page "/"
+
+<PageTitle>Blazing Trails</PageTitle>
+
+<h3> Home page</h3>
+
+@if (_trails == null)
+{
+    <p>Loading trails...</p>
+}
+else
+{
+    <TrailDetails Trail="_selectedTrail" />
+
+    <TrailSearch/>
+
+    <div class="grid">
+        @foreach(var trail in _trails)
+        {
+            <TrailCard Trail="trail" OnSelected="HandleTrailSelected" />
+        }
+    </div>
+}
+
+@code{
+    private Trail? _selectedTrail;
+
+    private void HandleTrailSelected(Trail trail)
+    {
+        _selectedTrail = trail; 
+    }
+}

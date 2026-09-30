@@ -1,0 +1,23 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build output
+**/bin/
+**/obj/
+
+# Node.js
+**/node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local database
+**/Persistence/Data/*.db
+**/Persistence/Data/*.db-shm
+**/Persistence/Data/*.db-wal
