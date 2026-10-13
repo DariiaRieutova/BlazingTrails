@@ -45,7 +45,7 @@ namespace BlazingTrails.Api.Features.ManageTrails
 
             await _database.SaveChangesAsync(cancellationToken);
 
-            return Ok(trail.Id); //page 179
+            return Ok(trail.Id); 
         }
     }
 }

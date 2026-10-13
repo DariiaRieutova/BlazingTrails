@@ -1,4 +1,6 @@
-﻿@using Blazored.FluentValidation
+﻿@using BlazingTrails.Client.Validation
+@using Blazored.FluentValidation
+@using Microsoft.AspNetCore.Components.Forms
 @inject IMediator Mediator
 
 @page "/add-trail"
@@ -23,9 +25,9 @@
              fill="currentColor" class="bi bi-check-circle-fill"
              viewBox="0 0 16 16">
             <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16
-                      0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384
-                      7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0
-                      0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+            0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384
+            7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0
+            0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
         </svg>
         Your trail has been submitted successfully!
     </div>
@@ -37,16 +39,16 @@ else if (_errorMessage is not null)
              fill="currentColor" class="bi bi-x-circle-fill"
              viewBox="0 0 16 16">
             <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16
-                     0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647
-                     2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0
-                     .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8
-                     7.293 5.354 4.646z" />
+            0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647
+            2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0
+            .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8
+            7.293 5.354 4.646z" />
         </svg>
         @_errorMessage
     </div>
 }
 
-<EditForm Model="_trail" OnValidSubmit="SubmitForm">
+<EditForm EditContext="_editContext" OnValidSubmit="SubmitForm">
 
     <FluentValidationValidator />
 
@@ -81,6 +83,17 @@ else if (_errorMessage is not null)
             <label for="trailLength" class="font-weight-bold text-secondary">Length (km)</label>
             <InputNumber @bind-Value="_trail.Length" class="form-control" id="trailLength" />
             <ValidationMessage For="@(() => _trail.Length)" />
+        </FormFieldSet>
+
+        <FormFieldSet Width="col-3">
+            <label for="trailTime" class="font-weight-bold text-secondary">Time</label>
+            <InputTime @bind-Value="_trail.TimeInMinutes" id="trailTime" />
+            <ValidationMessage For="@(() => _trail.TimeInMinutes)" />
+        </FormFieldSet>
+
+        <FormFieldSet>
+            <label for="trailImage" class="font-weight-bold text-secondary">Image</label>
+            <InputFile OnChange="LoadTrailImage" class="form-control-file" id="trailImage" accept=".png,.jpg,.jpeg" />
         </FormFieldSet>
 
     </FormSection>
@@ -120,11 +133,11 @@ else if (_errorMessage is not null)
                              fill="currentColor"
                              xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0
-                                    8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1
-                                    0-.708.708L7.293 8l-2.647 2.646a.5.5
-                                    0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0
-                                    .708-.708L8.707 8l2.647-2.646a.5.5 0 0
-                                    0-.708-.708L8 7.293 5.354 4.646z" />
+                            8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1
+                            0-.708.708L7.293 8l-2.647 2.646a.5.5
+                            0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0
+                            .708-.708L8.707 8l2.647-2.646a.5.5 0 0
+                            0-.708-.708L8 7.293 5.354 4.646z" />
                         </svg>
                     </button>
                 </div>
@@ -135,7 +148,7 @@ else if (_errorMessage is not null)
                 <button class="btn btn-outline-primary"
                         type="button"
                         @onclick="@(() => _trail.Route.Add(
-                        new TrailDto.RouteInstruction()))">
+                                                                new TrailDto.RouteInstruction()))">
                     Add Instruction
                 </button>
                 <ValidationMessage For="@(() => _trail.Route)" />
@@ -163,11 +176,15 @@ else if (_errorMessage is not null)
 
 @code
 {
+    private EditContext _editContext = default!;
+
     private TrailDto _trail = new TrailDto();
 
     private bool _submitSuccessful;
 
     private string? _errorMessage;
+
+    private IBrowserFile? _trailImage;
 
     public List<RouteInstruction> Route { get; set; } = new List<RouteInstruction>();
 
@@ -182,9 +199,48 @@ else if (_errorMessage is not null)
             return;
         }
 
-        _trail = new TrailDto();
-        _errorMessage = null;
-        _submitSuccessful = true;
+        if (_trailImage is null)
+        {
+            _submitSuccessful = true;
+            ResetForm();
+            return;
+        }
 
+        await ProcessImage(response.TrailId);
     }
+
+    private async Task ProcessImage(int trailId)
+    {
+        var imageUploadResponse = await Mediator.Send(new UploadTrailImageRequest(trailId, _trailImage));
+
+        if (string.IsNullOrWhiteSpace(imageUploadResponse.ImageName))
+        {
+            _errorMessage = "Your trail was saved, but there was a problem saving your image.";
+            return;
+        }
+
+        _submitSuccessful = true;
+        ResetForm();
+    }
+
+    private void ResetForm()
+    {
+        _trail = new TrailDto();
+        _editContext = new EditContext(_trail);
+        _editContext.SetFieldCssClassProvider(new BootstrapCssClassProvider());
+        _trailImage = null;
+    }
+
+    protected override void OnInitialized()
+    {
+        _editContext = new EditContext(_trail);
+        _editContext.SetFieldCssClassProvider(new BootstrapCssClassProvider());
+    }
+
+    private void LoadTrailImage(InputFileChangeEventArgs e)
+    {
+        _trailImage = e.File;
+    }
+
+    //page 196 Добавление конечной точки АPI
 }

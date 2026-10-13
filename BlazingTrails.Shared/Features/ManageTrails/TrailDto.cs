@@ -35,6 +35,7 @@ namespace BlazingTrails.Shared.Features.ManageTrails
                 RuleFor(x => x.Location).NotEmpty().WithMessage("Trail location is required.");
                 RuleFor(x => x.TimeInMinutes).GreaterThan(0).WithMessage("Time in minutes must be greater than 0.");
                 RuleFor(x => x.Length).GreaterThan(0).WithMessage("Length must be greater than 0.");
+                RuleFor(x=>x.TimeInMinutes).GreaterThan(0).WithMessage("Please enter a valid time.");
 
                 RuleForEach(x => x.Route).SetValidator(new RouteInstructionValidator());
             }
