@@ -1,4 +1,6 @@
-﻿@inherits InputBase<int>
+﻿@using Microsoft.AspNetCore.Components.Forms
+
+@inherits InputBase<int>
 
 <div class="input-time">
     <div>
@@ -20,7 +22,7 @@
 
 @code
 {
-    private int _hours; //page 190
+    private int _hours; 
 
     private int _minutes;
 

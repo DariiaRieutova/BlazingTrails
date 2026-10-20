@@ -1,6 +1,7 @@
 ﻿@page "/search/{searchTerm}"
 @page "/search/{SearchTerm}/maxlength/{MaxLength:int}"
 @inject HttpClient HttpClient
+@inject IMediator Mediator
 @inject NavigationManager NavigationManager
 
 <nav aria-label="breadcrumb">
@@ -55,18 +56,24 @@ else
     {
         try
         {
-            var allTrails = await HttpClient.GetFromJsonAsync<IEnumerable<Trail>>("trails/trail-data.json");
+            var response = await Mediator.Send(new GetTrailsRequest());
 
-            _searchResults = allTrails!
-                .Where(t =>
-                    t.Name.Contains(
-                        SearchTerm,
-                        StringComparison.CurrentCultureIgnoreCase) ||
-                    t.Location.Contains(
-                        SearchTerm,
-                        StringComparison.CurrentCultureIgnoreCase));
+            var allTrails = response.Trails.Select(x => new Trail
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Image = x.Image,
+                Description = x.Description,
+                Location = x.Location,
+                Length = x.Length,
+                TimeInMinutes = x.TimeInMinutes
+            });
 
-            _cachedSearchResults = _searchResults;
+            _searchResults = allTrails
+            .Where(t => t.Name.Contains(SearchTerm, StringComparison.CurrentCultureIgnoreCase)
+            || t.Location.Contains(SearchTerm, StringComparison.CurrentCultureIgnoreCase));
+
+            UpdateFilters();
         }
         catch (HttpRequestException ex)
         {
@@ -87,7 +94,7 @@ else
     private void UpdateFilters()
     {
         var filters = new List<Func<Trail, bool>>();
-         
+
         if (MaxLength is not null && MaxLength > 0)
         {
             filters.Add(t => t.Length <= MaxLength);
@@ -95,7 +102,7 @@ else
 
         if (MaxTime is not null && MaxTime > 0)
         {
-            filters.Add(t => t.TimeInMinutes <= MaxTime*60);
+            filters.Add(t => t.TimeInMinutes <= MaxTime * 60);
         }
 
         if (filters.Any())

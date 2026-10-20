@@ -20,4 +20,10 @@
 
         public IEnumerable<RouteInstruction> Route { get; set; } = Array.Empty<RouteInstruction>();
     }
+
+    public class RouteInstruction
+    {
+        public int Stage { get; set; }
+        public string Description { get; set; } = "";
+    }
 }
